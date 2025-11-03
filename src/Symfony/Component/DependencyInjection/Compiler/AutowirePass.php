@@ -335,8 +335,19 @@ class AutowirePass extends AbstractRecursivePass
                         $value = $this->doProcessValue($value);
                     } elseif ($lazy = $attribute->lazy) {
                         $value ??= $getValue();
+                        $parameterType = $type;
+                        $type = null;
+                        $resolvedType = null;
                         if ($this->container->has($value->getType())) {
-                            $type = $this->container->findDefinition($value->getType())->getClass();
+                            $resolvedType = $this->container->findDefinition($value->getType())->getClass();
+                            if (class_exists($resolvedType, false) || interface_exists($resolvedType, false)) {
+                                 $reflector = $this->container->getReflectionClass($resolvedType, false);
+                                 if (!$reflector || !$reflector->isFinal() || \PHP_VERSION_ID >= 80400) {
+                                     $type = $resolvedType;
+                                 } elseif (interface_exists($parameterType, false)) {
+                                     $type = $parameterType;
+                                 }
+                            }
                         }
                         $definition = (new Definition($type))
                             ->setFactory('current')
@@ -344,14 +355,14 @@ class AutowirePass extends AbstractRecursivePass
                             ->setLazy(true);
 
                         if (!\is_array($lazy)) {
-                            if (str_contains($type, '|')) {
+                            if ($type && str_contains($type, '|')) {
                                 throw new AutowiringFailedException($this->currentId, \sprintf('Cannot use #[Autowire] with option "lazy: true" on union types for service "%s"; set the option to the interface(s) that should be proxied instead.', $this->currentId));
                             }
-                            $lazy = str_contains($type, '&') ? explode('&', $type) : [];
+                            $lazy = $parameterType && str_contains($parameterType, '&') ? explode('&', $parameterType) : [];
                         }
 
                         if ($lazy) {
-                            if (!class_exists($type) && !interface_exists($type, false)) {
+                            if (!$type || (!class_exists($type) && !interface_exists($type, false))) {
                                 $definition->setClass('object');
                             }
                             foreach ($lazy as $v) {
@@ -359,7 +370,7 @@ class AutowirePass extends AbstractRecursivePass
                             }
                         }
 
-                        if ($definition->getClass() !== (string) $value || $definition->getTag('proxy')) {
+                        if ($definition->getClass() !== $resolvedType || $definition->getTag('proxy')) {
                             $value .= '.'.$this->container->hash([$definition->getClass(), $definition->getTag('proxy')]);
                         }
                         $this->container->setDefinition($value = '.lazy.'.$value, $definition);
