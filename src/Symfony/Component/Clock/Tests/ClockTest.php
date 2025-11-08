@@ -90,8 +90,11 @@ class ClockTest extends TestCase
         $this->assertSame('UTC', Clock::get()->withTimeZone('UTC')->now()->getTimezone()->getName());
         $this->assertSame('Europe/Paris', Clock::get()->withTimeZone('Europe/Paris')->now()->getTimezone()->getName());
 
+        $startTime = microtime(true);
         Clock::get()->sleep(0.1);
+        $duration = microtime(true) - $startTime;
 
         $this->assertSame(1234567, now()->getTimestamp());
+        $this->assertLessThan(0.05, $duration, 'sleep() on a PSR-clock wrapper should not trigger a native sleep.');
     }
 }
