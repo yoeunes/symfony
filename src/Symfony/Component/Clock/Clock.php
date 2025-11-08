@@ -61,8 +61,6 @@ final class Clock implements ClockInterface
 
         if ($clock instanceof ClockInterface) {
             $clock->sleep($seconds);
-        } else {
-            (new NativeClock())->sleep($seconds);
         }
     }
 
