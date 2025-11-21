@@ -76,4 +76,13 @@ class FloatNodeTest extends TestCase
             [new \stdClass()],
         ];
     }
+
+    public function testFinalizeWithNullAndAllowEmptyValue()
+    {
+        $node = new FloatNode('test');
+        $node->setAllowEmptyValue(false);
+        $node->setDefaultValue(null);
+
+        $this->assertNull($node->finalize(null));
+    }
 }
