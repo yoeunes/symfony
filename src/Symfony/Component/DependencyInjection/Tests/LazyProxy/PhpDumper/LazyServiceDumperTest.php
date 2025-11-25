@@ -65,6 +65,20 @@ class LazyServiceDumperTest extends TestCase
         $this->assertTrue($dumper->isProxyCandidate($definition));
         $this->assertStringContainsString('readonly class ReadOnlyClassGhost', $dumper->getProxyCode($definition));
     }
+
+    public function testGetProxyCodeThrowsForFinalInternalClasses()
+    {
+        $dumper = new LazyServiceDumper();
+        $definition = new Definition(FinalInternalClass::class);
+        $definition->setLazy(true);
+
+        $this->assertFalse($dumper->isProxyCandidate($definition), 'Final classes extending internal classes cannot be proxied (neither Ghost nor Virtual).');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot instantiate lazy proxy for service');
+
+        $dumper->getProxyCode($definition);
+    }
 }
 
 final class TestContainer implements ContainerInterface
@@ -78,4 +92,8 @@ final class TestContainer implements ContainerInterface
     {
         return $key;
     }
+}
+
+final class FinalInternalClass extends \ArrayObject
+{
 }

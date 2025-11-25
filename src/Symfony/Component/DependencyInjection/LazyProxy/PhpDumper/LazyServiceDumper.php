@@ -61,7 +61,7 @@ final class LazyServiceDumper implements DumperInterface
         } catch (LogicException) {
         }
 
-        return true;
+        return $asGhostObject || !(new \ReflectionClass($class))->isFinal();
     }
 
     public function getProxyFactoryCode(Definition $definition, string $id, string $factoryCode): string
